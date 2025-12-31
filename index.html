@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>For You</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8e7cc3; 
+            --secondary: #674ea7; 
+            --accent: #d9d2e9;
+            --bg: #f3f0ff; 
+            --card-bg: #ffffff;
+        }
+
+        /* --- MOBILE SCROLL RESET --- */
+        html {
+            overflow-x: hidden;
+            height: -webkit-fill-available;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: radial-gradient(var(--accent) 2px, transparent 2px);
+            background-size: 40px 40px;
+            margin: 0;
+            font-family: 'Press Start 2P', cursive;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+            overflow-y: auto;
+            position: relative;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        body.is-locked {
+            overflow: hidden !important;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- INTRO SCREEN STYLES --- */
+        #intro-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+            text-align: center;
+        }
+
+        .intro-card {
+            background: white;
+            padding: 30px;
+            border: 4px solid var(--secondary);
+            box-shadow: 10px 10px 0px var(--secondary);
+            max-width: 80%;
+            position: relative;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 25px;
+            align-items: center;
+        }
+
+        #runaway-btn {
+            position: relative;
+            transition: all 0.1s ease;
+            z-index: 5001;
+            white-space: nowrap;
+        }
+
+        /* --- MINIGAME STYLES --- */
+        #game-container {
+            position: fixed;
+            width: 100vw; height: 100vh;
+            background: var(--bg);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #game-canvas {
+            border: 4px solid var(--secondary);
+            background: white;
+            box-shadow: 8px 8px 0px var(--secondary);
+            max-width: 90vw;
+            max-height: 50vh;
+            touch-action: none; 
+        }
+
+        .game-ui {
+            margin-bottom: 20px;
+            text-align: center;
+            color: var(--secondary);
+            font-size: 10px;
+        }
+
+        /* --- DECORATIONS --- */
+        .heart {
+            position: fixed;
+            color: var(--primary);
+            font-size: 20px;
+            user-select: none;
+            pointer-events: none;
+            z-index: -1;
+            animation: float 6s linear infinite;
+            opacity: 0;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(110vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* --- NEW LETTER DECORATIONS --- */
+        .pixel-heart-mini {
+            color: #ff4d4d;
+            font-size: 14px;
+            animation: heartFloat 2s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes heartFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .letter-stamp {
+            border: 2px dashed var(--primary);
+            padding: 8px;
+            color: var(--primary);
+            transform: rotate(5deg);
+            text-align: center;
+            background: rgba(142, 124, 195, 0.05);
+        }
+
+        /* --- ENVELOPE --- */
+        #envelope-wrapper {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            cursor: pointer;
+            z-index: 2000;
+        }
+
+        .pixel-envelope {
+            width: 150px;
+            image-rendering: pixelated;
+            filter: drop-shadow(8px 8px 0px var(--secondary));
+        }
+
+        /* --- MAIN CONTENT --- */
+        #main-content {
+            display: none;
+            width: 100%;
+            max-width: 700px;
+            padding: 40px 20px 80px 20px;
+            box-sizing: border-box;
+            animation: slideUp 0.8s ease;
+        }
+
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: white;
+            border: 4px solid var(--secondary);
+            padding: 10px;
+            font-family: 'Press Start 2P';
+            font-size: 9px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px var(--secondary);
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0px 0px 0px;
+            transform: translate(2px, 2px);
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 30px 20px;
+            border: 4px solid var(--secondary);
+            box-shadow: 10px 10px 0px var(--secondary);
+            line-height: 1.8;
+            font-size: 11px;
+            position: relative;
+        }
+
+        .glow-text {
+            font-size: 12px;
+            color: var(--secondary);
+            margin-bottom: 20px;
+            border-bottom: 3px solid var(--accent);
+            display: inline-block;
+        }
+
+        /* --- GALLERY GRID STYLES --- */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            padding-bottom: 50px;
+        }
+
+        @media (min-width: 600px) {
+            .gallery-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        .polaroid {
+            background: white;
+            padding: 15px;
+            border: 4px solid var(--secondary);
+            box-shadow: 8px 8px 0px var(--secondary);
+            transition: transform 0.3s;
+            position: relative;
+        }
+
+        .polaroid:hover { transform: rotate(-2deg); }
+
+        .img-frame {
+            width: 100%;
+            aspect-ratio: 1/1;
+            border: 3px solid var(--accent);
+            overflow: hidden;
+            background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .img-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .img-frame img.active {
+            display: block;
+        }
+
+        /* --- CAROUSEL BUTTONS --- */
+        .slider-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid var(--secondary);
+            padding: 5px;
+            font-family: 'Press Start 2P';
+            font-size: 8px;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 2px 2px 0px var(--secondary);
+        }
+
+        .prev-btn { left: 5px; }
+        .next-btn { right: 5px; }
+
+        .caption {
+            font-size: 8px;
+            text-align: center;
+            color: var(--secondary);
+            margin-top: 15px;
+            line-height: 1.4;
+        }
+
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .instruction { font-size: 10px; color: var(--secondary); margin-top: 20px; animation: blink 1.2s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .content-section { display: none; }
+        .active-section { display: block; }
+    </style>
+</head>
+<body class="is-locked">
+
+    <div id="intro-screen">
+        <div class="intro-card">
+            <h1 style="font-size: 18px; color: var(--secondary);">Hey baby! ♥</h1>
+            <p style="font-size: 10px; line-height: 2;">I made something for you to celebrate new year. Wanna open it?</p>
+            
+            <div class="button-group">
+                <button class="tab-btn" onclick="initiateEverything()">YES, OPEN IT! ✨</button>
+                <button id="runaway-btn" class="tab-btn" onmouseover="runAway(this)" onclick="runAway(this)">HELL NAW 💀</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="bg-music" loop>
+        <source src="PASTE_YOUR_MP3_URL_HERE" type="audio/mpeg">
+    </audio>
+
+    <div id="game-container">
+        <div class="game-ui">
+            <p>COLLECT 10 HEARTS TO UNLOCK!</p>
+            <p>SCORE: <span id="score">0</span>/10</p>
+        </div>
+        <canvas id="game-canvas"></canvas>
+        <div class="instruction">DRAG TO CATCH!</div>
+    </div>
+
+    <div id="hearts-container"></div>
+
+    <div id="envelope-wrapper" onclick="startExperience()">
+        <img src="https://i.pinimg.com/originals/cd/69/ea/cd69eaac49bb66b0272aaa46504cb083.gif" class="pixel-envelope">
+        <div class="instruction">YOU DID IT! CLICK TO OPEN</div>
+    </div>
+
+    <div id="main-content">
+        <nav class="nav-tabs">
+            <button class="tab-btn active" onclick="showSection('letter-sec', this)">♥ LETTER</button>
+            <button class="tab-btn" onclick="showSection('music-sec', this)">🎵 SONG</button>
+            <button class="tab-btn" onclick="showSection('gallery-sec', this)">✦ GALLERY</button>
+        </nav>
+
+        <div id="letter-sec" class="content-section active-section">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <div style="flex: 1;">
+                        <h2 class="glow-text" style="margin-bottom: 5px;">HAPPY NEW YEAR!!!</h2>
+                        <div class="pixel-heart-mini">❤</div>
+                    </div>
+                    
+                    <div class="letter-stamp">
+                        <p style="margin: 0; font-size: 20px;">❤</p>
+                    </div>
+                </div>
+
+                <p>egiluy udh 2026 nich yapping dulu kali yak</p>
+                <p>I just want to tell you how glad I am to have u as a part of my life. It’s crazy to think that three months ago we were still pdkt-ing, and now I can’t imagine starting 2026 without you (anjay). </p>
+                <p>Jujur masih gak nyangka bisa pacaran w someone as amazing as you, and for that I say thank you sayangg. The day when I was told you liked me back is quite literally the best day of my life. Thankyou for all the fun things we did, the random calls, the fun dates, the tight hugs, and the kisses HEHEHEHE. I cherish every single bit of it.</p>
+                <p>Please don't be insecure and compare urself to others. You're pretty, beautiful, gorgeous, kind, smart, hot, funny and so on. you really deserve all the compliments in the world (AND UR NOT FAT BTW UR SEXY AS HELL).</p>
+                <p>I'm so sorry for the mistakes I made in the past, when I made u feel bad or uncomfortable, and thankyou for being honest about it. It helps me become a better man for you, and I promise to keep learning how to love you better every day.</p>
+                <p>and I'm sorry I couldn't give you much of a present other than this simple webpage I made. But I hope this little gesture shows how much I care about you and appreciate having you in my life. I hope we can stay together until years to come hahay pal pale pal pale</p>
+                <p>I think that's all i gotta say blud i aint the yapper type hehe thankyou for reading all this muah I LOVE YOU BABYY AND HAPPY NEW YEARR</p>
+                <p style="text-align: right; margin-top: 30px; color: var(--primary);">— ur dearest bf —</p>
+                <p>p.s. don't forget to open the gallery hihi</p>
+            </div>
+        </div>
+
+        <div id="music-sec" class="content-section">
+            <div class="card" style="text-align: center;">
+                <h2 class="glow-text">THE SONG FOR US</h2>
+                <p><strong>[Song Title]</strong></p>
+                <p style="font-size: 10px; color: var(--secondary); margin-top: 20px; line-height: 1.6;">
+                    "I chose this song because every time it plays, I think of you."
+                </p>
+            </div>
+        </div>
+
+        <div id="gallery-sec" class="content-section">
+            <div class="gallery-grid">
+                <div class="polaroid">
+                    <div class="img-frame" id="frame-1">
+                        <button class="slider-btn prev-btn" onclick="moveSlide('frame-1', -1)"><</button>
+                        <img src="PASTE_1A" class="active">
+                        <img src="PASTE_1B">
+                        <button class="slider-btn next-btn" onclick="moveSlide('frame-1', 1)">></button>
+                    </div>
+                    <p class="caption">MEMORY 1 ♥</p>
+                </div>
+                <div class="polaroid">
+                    <div class="img-frame"><img src="PASTE_2A" class="active"></div>
+                    <p class="caption">MEMORY 2 ♥</p>
+                </div>
+                <div class="polaroid">
+                    <div class="img-frame"><img src="PASTE_3A" class="active"></div>
+                    <p class="caption">MEMORY 3 ♥</p>
+                </div>
+                <div class="polaroid">
+                    <div class="img-frame" id="frame-4">
+                        <button class="slider-btn prev-btn" onclick="moveSlide('frame-4', -1)"><</button>
+                        <img src="PASTE_4A" class="active">
+                        <img src="PASTE_4B">
+                        <button class="slider-btn next-btn" onclick="moveSlide('frame-4', 1)">></button>
+                    </div>
+                    <p class="caption">MEMORY 4 ♥</p>
+                </div>
+                <div class="polaroid">
+                    <div class="img-frame" id="frame-5">
+                        <button class="slider-btn prev-btn" onclick="moveSlide('frame-5', -1)"><</button>
+                        <img src="PASTE_5A" class="active">
+                        <img src="PASTE_5B">
+                        <img src="PASTE_5C">
+                        <button class="slider-btn next-btn" onclick="moveSlide('frame-5', 1)">></button>
+                    </div>
+                    <p class="caption">MEMORY 5 ♥</p>
+                </div>
+                <div class="polaroid">
+                    <div class="img-frame"><img src="PASTE_6A" class="active"></div>
+                    <p class="caption">MEMORY 6 ♥</p>
+                </div>
+                <div class="polaroid">
+                    <div class="img-frame" id="frame-7">
+                        <button class="slider-btn prev-btn" onclick="moveSlide('frame-7', -1)"><</button>
+                        <img src="PASTE_7A" class="active">
+                        <img src="PASTE_7B">
+                        <img src="PASTE_7C">
+                        <button class="slider-btn next-btn" onclick="moveSlide('frame-7', 1)">></button>
+                    </div>
+                    <p class="caption">MEMORY 7 ♥</p>
+                </div>
+                <div class="polaroid">
+                    <div class="img-frame" id="frame-8">
+                        <button class="slider-btn prev-btn" onclick="moveSlide('frame-8', -1)"><</button>
+                        <img src="PASTE_8A" class="active">
+                        <img src="PASTE_8B">
+                        <button class="slider-btn next-btn" onclick="moveSlide('frame-8', 1)">></button>
+                    </div>
+                    <p class="caption">MEMORY 8 ♥</p>
+                </div>
+                <div class="polaroid">
+                    <div class="img-frame" id="frame-9">
+                        <button class="slider-btn prev-btn" onclick="moveSlide('frame-9', -1)"><</button>
+                        <img src="PASTE_9A" class="active">
+                        <img src="PASTE_9B">
+                        <img src="PASTE_9C">
+                        <button class="slider-btn next-btn" onclick="moveSlide('frame-9', 1)">></button>
+                    </div>
+                    <p class="caption">MEMORY 9 ♥</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- SLIDER LOGIC ---
+        function moveSlide(frameId, direction) {
+            const frame = document.getElementById(frameId);
+            const images = frame.getElementsByTagName('img');
+            let activeIndex = 0;
+            for (let i = 0; i < images.length; i++) {
+                if (images[i].classList.contains('active')) {
+                    activeIndex = i;
+                    images[i].classList.remove('active');
+                    break;
+                }
+            }
+            let nextIndex = activeIndex + direction;
+            if (nextIndex >= images.length) nextIndex = 0;
+            if (nextIndex < 0) nextIndex = images.length - 1;
+            images[nextIndex].classList.add('active');
+        }
+
+        function runAway(btn) {
+            btn.style.position = 'fixed';
+            const padding = 50;
+            const newTop = Math.random() * (window.innerHeight - btn.offsetHeight - padding) + padding;
+            const newLeft = Math.random() * (window.innerWidth - btn.offsetWidth - padding) + padding;
+            btn.style.top = newTop + 'px';
+            btn.style.left = newLeft + 'px';
+        }
+
+        let gameActive = false;
+        let score = 0;
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        
+        canvas.width = 300;
+        canvas.height = 400;
+        let basket = { x: 130, y: 350, w: 60, h: 20 };
+        let fallingHearts = [];
+
+        function initiateEverything() {
+            document.getElementById('intro-screen').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
+            const music = document.getElementById('bg-music');
+            music.play().catch(e => console.log("Audio play blocked"));
+            gameActive = true;
+            updateGame();
+        }
+
+        function handleInput(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            basket.x = (clientX - rect.left) * (canvas.width / rect.width) - basket.w/2;
+            if (basket.x < 0) basket.x = 0;
+            if (basket.x > canvas.width - basket.w) basket.x = canvas.width - basket.w;
+        }
+
+        canvas.addEventListener('mousemove', handleInput);
+        canvas.addEventListener('touchmove', (e) => { handleInput(e); e.preventDefault(); }, { passive: false });
+
+        function updateGame() {
+            if(!gameActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#674ea7';
+            ctx.fillRect(basket.x, basket.y, basket.w, basket.h);
+            
+            if(Math.random() < 0.03) {
+                fallingHearts.push({ x: Math.random() * (canvas.width-20) + 10, y: -20 });
+            }
+
+            ctx.fillStyle = '#8e7cc3';
+            ctx.font = '20px serif';
+            for(let i = fallingHearts.length - 1; i >= 0; i--) {
+                fallingHearts[i].y += 4;
+                ctx.fillText('♥', fallingHearts[i].x, fallingHearts[i].y);
+                
+                if(fallingHearts[i].y > basket.y && fallingHearts[i].y < basket.y + basket.h &&
+                   fallingHearts[i].x > basket.x && fallingHearts[i].x < basket.x + basket.w) {
+                    fallingHearts.splice(i, 1);
+                    score++;
+                    scoreElement.innerText = score;
+                    if(score >= 10) endGame();
+                } else if(fallingHearts[i].y > canvas.height) {
+                    fallingHearts.splice(i, 1);
+                }
+            }
+            requestAnimationFrame(updateGame);
+        }
+
+        function endGame() {
+            gameActive = false;
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('envelope-wrapper').style.display = 'flex';
+        }
+
+        function startExperience() {
+            document.body.classList.remove('is-locked');
+            document.getElementById('envelope-wrapper').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            setInterval(createBackgroundHeart, 600);
+            window.scrollTo(0, 0);
+        }
+
+        function createBackgroundHeart() {
+            const heart = document.createElement('div');
+            heart.innerHTML = '♥';
+            heart.classList.add('heart');
+            heart.style.left = Math.random() * 100 + 'vw';
+            document.getElementById('hearts-container').appendChild(heart);
+            setTimeout(() => heart.remove(), 6000);
+        }
+
+        function showSection(sectionId, btn) {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active-section'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active-section');
+            btn.classList.add('active');
+        }
+    </script>
+</body>
+</html>
